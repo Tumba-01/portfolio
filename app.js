@@ -10,7 +10,7 @@ var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.
 
 // Redirect to the mobile version if accessing from a phone or tablet
 if (isMobile) {
-  window.location.href = "https://m.sergejkulpinac.dev";
+  window.location.href = "https://cv.kulpinac.com";
 }
 
 
