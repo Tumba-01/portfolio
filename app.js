@@ -1,43 +1,16 @@
+// ===========================================================
+// NAV ANIMATION — isolated, unchanged logic from portfolio site
+// ===========================================================
 document.addEventListener('DOMContentLoaded', () => {
-  const blob = document.getElementById("blob");
-  const elements = document.querySelectorAll('.fade-in');
   const latestBtn = document.getElementById('latest-cv');
   const projectsBtn = document.getElementById('projects');
   const aboutBtn = document.getElementById('about');
 
-  // Check if the user is accessing the website from a phone or a tablet
-var isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  let timeoutID;
 
-// Redirect to the mobile version if accessing from a phone or tablet
-if (isMobile) {
-  window.location.href = "https://cv.kulpinac.com";
-}
-
-
-  document.body.onpointermove = event => {
-    const { clientX, clientY } = event;
-
-    blob.animate(
-      [
-        { left: `${blob.style.left}`, top: `${blob.style.top}` },
-        { left: `${clientX}px`, top: `${clientY}px` }
-      ],
-      { duration: 3000, fill: "forwards" }
-    );
-  };
-
-  elements.forEach((element) => {
-    element.classList.add('fade-in');
-  });
-
-  let timeoutID; // Declare a variable to store the timeout ID
-  let isHovering = false; // Flag to track hover state
-  
-  // Function to reset the delay timer
   function resetDelayTimer() {
-    clearTimeout(timeoutID); // Clear any existing timeout
+    clearTimeout(timeoutID);
     timeoutID = setTimeout(() => {
-      // Reset styles after 5 seconds
       projectsBtn.style.marginLeft = '-75px';
       aboutBtn.style.marginLeft = '-65px';
       latestBtn.querySelector('.main-btn').style.backgroundColor = 'rgba(100, 100, 100, 0.25)';
@@ -48,23 +21,8 @@ if (isMobile) {
       aboutBtn.querySelector('.main-btn').style.color = 'transparent';
     }, 5000);
   }
-  
-  // Add event listeners to your elements
-  elements.forEach((element) => {
-    element.addEventListener('mouseenter', () => {
-      // Set the flag to true and reset the delay timer
-      isHovering = true;
-      resetDelayTimer();
-    });
-  
-    element.addEventListener('mouseleave', () => {
-      // Set the flag to false when leaving an element
-      isHovering = false;
-    });
-  });
-  
+
   latestBtn.addEventListener('mouseenter', () => {
-    // Shift elements to the right and change background colors on mouse enter
     projectsBtn.style.marginLeft = '0';
     aboutBtn.style.marginLeft = '0';
     latestBtn.querySelector('.main-btn').style.backgroundColor = 'white';
@@ -73,62 +31,136 @@ if (isMobile) {
     projectsBtn.querySelector('.main-btn').style.color = 'black';
     aboutBtn.querySelector('.main-btn').style.backgroundColor = 'white';
     aboutBtn.querySelector('.main-btn').style.color = 'black';
-  
-    // Reset the delay timer on mouse enter
     resetDelayTimer();
   });
-  
-  latestBtn.addEventListener('mouseleave', () => {
-    // Reset the delay timer on mouse leave
-    resetDelayTimer();
-  });
-  
-  // Check for hovering on any of the elements
-  function checkHover() {
-    if (isHovering) {
-      resetDelayTimer();
+
+  latestBtn.addEventListener('mouseleave', resetDelayTimer);
+});
+
+// ===========================================================
+// BLOB FOLLOWS THE MOUSE
+// ===========================================================
+document.addEventListener('DOMContentLoaded', () => {
+  const blob = document.getElementById("blob");
+
+  document.body.onpointermove = event => {
+    const { clientX, clientY } = event;
+    blob.animate(
+      [
+        { left: `${blob.style.left}`, top: `${blob.style.top}` },
+        { left: `${clientX}px`, top: `${clientY}px` }
+      ],
+      { duration: 3000, fill: "forwards" }
+    );
+  };
+});
+
+// ===========================================================
+// GALLERY LIGHTBOX + CAROUSEL (event delegation — robust)
+// Supports images, GIFs (just treat as images), videos, iframes.
+// ===========================================================
+document.addEventListener('DOMContentLoaded', () => {
+  const lightbox = document.getElementById("lightbox");
+  const lightboxContent = document.getElementById("lightbox-content");
+  const lightboxClose = document.getElementById("lightbox-close");
+  const lightboxPrev = document.getElementById("lightbox-prev");
+  const lightboxNext = document.getElementById("lightbox-next");
+  const lightboxCounter = document.getElementById("lightbox-counter");
+
+  let currentItems = [];
+  let currentType = "image";
+  let currentIndex = 0;
+
+  // add media-count badges up front
+  document.querySelectorAll(".gallery-card").forEach((card) => {
+    const items = (card.dataset.mediaSrc || "").split(",").map(s => s.trim()).filter(Boolean);
+    if (items.length > 1) {
+      const badge = document.createElement("span");
+      badge.className = "media-count";
+      badge.textContent = `1 / ${items.length}`;
+      const media = card.querySelector(".gallery-media");
+      if (media) media.appendChild(badge);
     }
+  });
+
+  function renderLightboxItem() {
+    lightboxContent.innerHTML = "";
+    const src = currentItems[currentIndex];
+
+    if (currentType === "video") {
+      const video = document.createElement("video");
+      video.src = src;
+      video.controls = true;
+      video.autoplay = true;
+      lightboxContent.appendChild(video);
+    } else if (currentType === "iframe") {
+      const iframe = document.createElement("iframe");
+      iframe.src = src;
+      iframe.allowFullscreen = true;
+      lightboxContent.appendChild(iframe);
+    } else {
+      // "image" covers jpg/png/gif — <img> animates gifs natively
+      const img = document.createElement("img");
+      img.src = src;
+      lightboxContent.appendChild(img);
+    }
+
+    const showArrows = currentItems.length > 1;
+    lightboxPrev.classList.toggle("hidden-arrow", !showArrows);
+    lightboxNext.classList.toggle("hidden-arrow", !showArrows);
+    lightboxCounter.style.display = showArrows ? "block" : "none";
+    lightboxCounter.textContent = `${currentIndex + 1} / ${currentItems.length}`;
   }
-  
-  // Call checkHover periodically to keep checking if the mouse is hovering over any element
-  setInterval(checkHover, 1000); // You can adjust the interval as needed
+
+  function openLightbox(type, items, startIndex) {
+    currentType = type;
+    currentItems = items;
+    currentIndex = startIndex;
+    renderLightboxItem();
+    lightbox.classList.add("active");
+  }
+
+  function closeLightbox() {
+    lightbox.classList.remove("active");
+    lightboxContent.innerHTML = "";
+    currentItems = [];
+  }
+
+  function showPrev() {
+    if (currentItems.length < 2) return;
+    currentIndex = (currentIndex - 1 + currentItems.length) % currentItems.length;
+    renderLightboxItem();
+  }
+
+  function showNext() {
+    if (currentItems.length < 2) return;
+    currentIndex = (currentIndex + 1) % currentItems.length;
+    renderLightboxItem();
+  }
+
+  // Event delegation: works even if cards are added/changed later
+  document.addEventListener("click", (e) => {
+    const link = e.target.closest(".gallery-link");
+    if (link) return; // let the project link navigate normally
+
+    const card = e.target.closest(".gallery-card");
+    if (card) {
+      const type = card.dataset.mediaType || "image";
+      const items = (card.dataset.mediaSrc || "").split(",").map(s => s.trim()).filter(Boolean);
+      if (items.length) openLightbox(type, items, 0);
+      return;
+    }
+
+    if (e.target.closest("#lightbox-prev")) { showPrev(); return; }
+    if (e.target.closest("#lightbox-next")) { showNext(); return; }
+    if (e.target.closest("#lightbox-close")) { closeLightbox(); return; }
+    if (e.target === lightbox) { closeLightbox(); return; }
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (!lightbox.classList.contains("active")) return;
+    if (e.key === "Escape") closeLightbox();
+    if (e.key === "ArrowLeft") showPrev();
+    if (e.key === "ArrowRight") showNext();
+  });
 });
-
-
-
-const rand = (min, max) => Math.floor(Math.random() * (max - min + 1)) + min;
-
-const enhance = id => {
-const element = document.getElementById(id),
-      text = element.innerText.split("");
-
-element.innerText = "";
-
-text.forEach((value, index) => {
-  const outer = document.createElement("span");
-  
-  outer.className = "outer";
-  
-  const inner = document.createElement("span");
-  
-  inner.className = "inner";
-  
-  inner.style.animationDelay = `${rand(-5000, 0)}ms`;
-  
-  const letter = document.createElement("span");
-  
-  letter.className = "letter";
-  
-  letter.innerText = value;
-  
-  letter.style.animationDelay = `${index * 1000 }ms`;
-  
-  inner.appendChild(letter);    
-  
-  outer.appendChild(inner);    
-  
-  element.appendChild(outer);
-});
-}
-
-enhance("channel-link");
